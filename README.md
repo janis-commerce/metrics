@@ -1,8 +1,8 @@
 # metric
 
-![Build Status](https://github.com/janis-commerce/log/workflows/Build%20Status/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/janis-commerce/log/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/log?branch=master)
-[![npm version](https://badge.fury.io/js/%40janiscommerce%2Flog.svg)](https://www.npmjs.com/package/@janiscommerce/log)
+![Build Status](https://github.com/janis-commerce/metric/workflows/Build%20Status/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/janis-commerce/metric/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/metric?branch=master)
+[![npm version](https://badge.fury.io/js/%40janiscommerce%2Fmetric.svg)](https://www.npmjs.com/package/@janiscommerce/metric)
 
 A package for creating metrics in Firehose
 
@@ -13,37 +13,26 @@ npm install @janiscommerce/metric
 
 ## Configuration
 ### ENV variables
-**`JANIS_SERVICE_NAME`** (required): The name of the service that will create the metric.
+**`JANIS_SERVICE_NAME`** (required): The Role Session Name to assume role in order to put records in Firehose.
 **`JANIS_ENV`** (required): The stage name that will used as prefix for trace firehose delivery stream.
-**`METRIC_ROLE_ARN`** (required): The ARN to assume the trace role in order to put records in Firehose.
+**`METRIC_ROLE_ARN`** (required): The ARN to assume role in order to put records in Firehose.
 
 ## API
-### **`add(clientCode, metrics)`**
-Parameters: `clientCode [String]`, `metrics [Object] or [Object array]`
+### **`add(clientCode, metricName, metricData)`**
+Parameters: `clientCode [String]`, `metricName [String]`, `metricData [Object] or [Object array]`
 Puts the recieved metric or metrics into the janis-trace-firehose
 
 ### Metric structure
 The `metric [Object]` parameter have the following structure:
-- **`id [String]`** (optional): The ID of the log in UUID V4 format. Default will be auto-generated.
-- **`service [String]`** (optional): The service name, if this field not exists, will be obtained from the ENV (**`JANIS_SERVICE_NAME`**)
-- **`name [String]`** (optional): A reference name for the metric
-- **`metric [Object|Array]`** (optional): This property is a JSON that includes all the technical data about your metric.
+- **`metric [Object|Array]`**: This property is a JSON that includes all the technical data about your metric.
 
 ### Metric example
 ```js
 {
-	id: '0acefd5e-cb90-4531-b27a-e4d236f07539',
-	service: 'oms',
-	name: 'order-fulfillment-status',
-	metric: {
-		warehouseName: "Example Warehouse name",
-		salesChannelId: "d555345345345as67a342a",
-		salesChannelName: "Example Sales Channel name",
-		pending: 4,
-		picking: 2,
-		picked: 5,
-	},
-	date_created: 1559103066
+	deliveryDate: '2022-06-03T10:00:00.000Z',
+	orderId: '629e578fd32fd43cd1e41944',
+	salesChannelId: '629e5797f63b83029b4df49f',
+	status: 'pending'
 }
 ```
 
@@ -53,7 +42,7 @@ Calls a callback when the specified event is emitted.
 
 ## Errors
 
-The errors are informed with a `LogError`.
+The errors are informed with a `MetricError`.
 This object has a code that can be useful for a correct error handling.
 The codes are the following:
 
@@ -70,40 +59,23 @@ The codes are the following:
 const Metric = require('@janiscommerce/metric');
 
 // Single metric send
-await Metric.add('some-client', {
-	service: 'oms',
-	name: 'order-fulfillment-status',
-	metric: {
-		warehouseName: "Example Warehouse name",
-		salesChannelId: "d555345345345as67a342a",
-		salesChannelName: "Example Sales Channel name",
-		pending: 4,
-		picking: 2,
-		picked: 5
-	}
+await Metric.add('some-client', 'order-fulfillment-status', {
+	warehouseName: "Example Warehouse name",
+	salesChannelId: "d555345345345as67a342a",
+	salesChannelName: "Example Sales Channel name"
 });
 
 // Multiple metrics send
-await Metric.add('some-client', [
+await Metric.add('some-client', 'order-fulfillment-status', [
 	{
-		service: 'oms',
-		name: 'order-fulfillment-status',
-		metric: {
-			warehouseName: "Example Warehouse name",
-			salesChannelId: "629d269fbd8f5f5da8185ba3",
-			salesChannelName: "Example Sales Channel name",
-			picked: 5
-		}
+		warehouseName: "Example Warehouse name",
+		salesChannelId: "629d269fbd8f5f5da8185ba3",
+		salesChannelName: "Example Sales Channel name"
 	},
 	{
-		service: 'oms',
-		name: 'order-fulfillment-status',
-		metric: {
-			warehouseName: "Other Example Warehouse name",
-			salesChannelId: "629d26a36c3c06aefe297df2",
-			salesChannelName: "Other Example Sales Channel name",
-			picking: 3
-		}
+		warehouseName: "Other Example Warehouse name",
+		salesChannelId: "629d26a36c3c06aefe297df2",
+		salesChannelName: "Other Example Sales Channel name"
 	}
 ]);
 
