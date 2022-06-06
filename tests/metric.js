@@ -10,23 +10,16 @@ const Metric = require('../lib');
 
 describe('Metric', () => {
 
-	const fakeMetric = {
-		id: 'some-id',
-		service: 'some-service',
-		name: 'some-name',
-		userCreated: '608c1589c063516b506fce19',
-		metric: {
-			some: 'metric'
-		}
+	const fakeMetricName = 'some-name';
+
+	const fakeMetricData = {
+		some: 'metric'
 	};
 
 	const expectedMetric = {
-		id: 'some-id',
-		service: 'some-service',
-		client: 'some-client',
-		name: fakeMetric.name,
-		metric: JSON.stringify(fakeMetric.metric),
-		userCreated: fakeMetric.userCreated
+		clientCode: 'some-client',
+		metricName: fakeMetricName,
+		metricData: fakeMetricData
 	};
 
 	const fakeRole = {
@@ -35,7 +28,7 @@ describe('Metric', () => {
 			SecretAccessKey: 'some-secret-access-key',
 			SessionToken: 'some-session-token'
 		},
-		Expiration: '2020-02-27T21:07:21.177'
+		Expiration: '2022-01-27T21:07:21.177'
 	};
 
 	const clearCaches = () => {
@@ -46,13 +39,13 @@ describe('Metric', () => {
 
 	let fakeTime = null;
 
+	beforeEach(() => {
+		fakeTime = sinon.useFakeTimers(new Date());
+	});
+
 	afterEach(() => {
 		clearCaches();
 		sinon.restore();
-	});
-
-	beforeEach(() => {
-		fakeTime = sinon.useFakeTimers(new Date());
 	});
 
 	describe('add', () => {
@@ -65,16 +58,25 @@ describe('Metric', () => {
 			sinon.stub(Firehose.prototype, 'putRecordBatch')
 				.resolves();
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			await Metric.add('other-client', fakeMetric);
+			await Metric.add('other-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
-			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch, {
-				DeliveryStreamName: 'JanisTraceFirehoseBeta',
+
+			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(0), {
+				DeliveryStreamName: 'kpi-metrics-per-client-beta',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
+					}
+				]
+			});
+			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(1), {
+				DeliveryStreamName: 'kpi-metrics-per-client-beta',
+				Records: [
+					{
+						Data: Buffer.from(JSON.stringify({ ...expectedMetric, clientCode: 'other-client', dateCreated: new Date() }))
 					}
 				]
 			});
@@ -94,7 +96,7 @@ describe('Metric', () => {
 			sinon.stub(Firehose.prototype, 'putRecordBatch')
 				.resolves();
 
-			await Metric.add('some-client', Array(1250).fill(fakeMetric));
+			await Metric.add('some-client', fakeMetricName, Array(1250).fill(fakeMetricData));
 
 			sinon.assert.calledThrice(Firehose.prototype.putRecordBatch);
 			sinon.assert.calledOnce(STS.prototype.assumeRole);
@@ -107,7 +109,7 @@ describe('Metric', () => {
 			sinon.spy(STS.prototype, 'assumeRole');
 			sinon.spy(Firehose.prototype, 'putRecordBatch');
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.notCalled(STS.prototype.assumeRole);
 			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
@@ -121,11 +123,11 @@ describe('Metric', () => {
 			sinon.stub(Firehose.prototype, 'putRecordBatch')
 				.resolves();
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			fakeTime.tick(1900000); // more than 30 min
 
-			await Metric.add('other-client',	 fakeMetric);
+			await Metric.add('other-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
 
@@ -142,7 +144,7 @@ describe('Metric', () => {
 			});
 		});
 
-		it('Should send a metric to Firehose with defaults values and not get credentials if there are no Role ARN ENV', async () => {
+		it('Should send a metric to Firehose and not get credentials if there are no Role ARN ENV', async () => {
 
 			sinon.stub(process.env, 'METRIC_ROLE_ARN').value('');
 
@@ -151,27 +153,9 @@ describe('Metric', () => {
 			sinon.stub(Firehose.prototype, 'putRecordBatch')
 				.resolves();
 
-			await Metric.add('some-client', {
-				...fakeMetric,
-				id: undefined,
-				service: undefined,
-				userCreated: null
-			});
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.calledOnce(Firehose.prototype.putRecordBatch);
-
-			const [{ Records }] = Firehose.prototype.putRecordBatch.lastCall.args;
-
-			const uploadedMetric = JSON.parse(Records[0].Data.toString());
-
-			const { userCreated, ...restOfMetric } = expectedMetric;
-
-			sinon.assert.match(uploadedMetric, {
-				...restOfMetric,
-				id: sinon.match.string,
-				service: 'default-service',
-				dateCreated: new Date().toISOString()
-			});
 
 			sinon.assert.notCalled(STS.prototype.assumeRole);
 		});
@@ -189,11 +173,11 @@ describe('Metric', () => {
 			Firehose.prototype.putRecordBatch.onSecondCall()
 				.resolves();
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
 			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
-				DeliveryStreamName: 'JanisTraceFirehoseBeta',
+				DeliveryStreamName: 'kpi-metrics-per-client-beta',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
@@ -225,16 +209,16 @@ describe('Metric', () => {
 				errorEmitted = true;
 			});
 
-			await Metric.add('some-client', { ...fakeMetric, metric: undefined });
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			assert.deepStrictEqual(errorEmitted, true);
 
 			sinon.assert.calledThrice(Firehose.prototype.putRecordBatch);
 			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
-				DeliveryStreamName: 'JanisTraceFirehoseQA',
+				DeliveryStreamName: 'kpi-metrics-per-client-qa',
 				Records: [
 					{
-						Data: Buffer.from(JSON.stringify({ ...expectedMetric, metric: undefined, dateCreated: new Date() }))
+						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
 					}
 				]
 			});
@@ -255,18 +239,7 @@ describe('Metric', () => {
 
 			sinon.spy(Firehose.prototype, 'putRecordBatch');
 
-			await Metric.add('some-client', fakeMetric);
-
-			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
-		});
-
-		it('Should not call Firehose putRecordBatch when ENV service variable not exists', async () => {
-
-			sinon.stub(process.env, 'JANIS_SERVICE_NAME').value('');
-
-			sinon.spy(Firehose.prototype, 'putRecordBatch');
-
-			await Metric.add('some-client', { ...fakeMetric, service: undefined });
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
 		});
@@ -278,7 +251,7 @@ describe('Metric', () => {
 
 			sinon.spy(Firehose.prototype, 'putRecordBatch');
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
 		});
@@ -290,7 +263,7 @@ describe('Metric', () => {
 
 			sinon.spy(Firehose.prototype, 'putRecordBatch');
 
-			await Metric.add('some-client', fakeMetric);
+			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
 		});
@@ -299,19 +272,18 @@ describe('Metric', () => {
 
 			[
 
-				{ ...fakeMetric, metric: 'not an object/array' },
-				{ ...fakeMetric, name: { not: 'a string' } },
-				{ ...fakeMetric, client: ['not a string'] },
-				{ ...fakeMetric, userCreated: 1 }
+				{ clientCode: expectedMetric.clientCode, metricName: fakeMetricName, metricData: 'not an object/array' },
+				{ clientCode: expectedMetric.clientCode, metricName: { not: 'a string' }, metricData: fakeMetricData },
+				{ clientCode: ['not a string'], metricName: fakeMetricName, metricData: fakeMetricData }
 
-			].forEach(metric => {
+			].forEach(({ clientCode, metricName, metricData }) => {
 
 				it('Should throw and not try to send the metric to Firehose', async () => {
 
 					sinon.spy(STS.prototype, 'assumeRole');
 					sinon.spy(Firehose.prototype, 'putRecordBatch');
 
-					await Metric.add('some-client', metric);
+					await Metric.add(clientCode, metricName, metricData);
 
 					sinon.assert.notCalled(STS.prototype.assumeRole);
 					sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
