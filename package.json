@@ -2,14 +2,15 @@
 	"name": "@janiscommerce/metrics",
 	"version": "1.0.0",
 	"description": "A package for creating metrics in Firehose",
-	"main": "lib/index.js",
+	"main": "lib/metric.js",
 	"scripts": {
 		"test": "export TEST_ENV=true; mocha --exit -R nyan --recursive tests/ --require tests/bootstrap",
 		"coverage-ci": "nyc --reporter=lcov --reporter=text-summary mocha --exit --recursive tests/",
 		"watch-test": "export TEST_ENV=true; mocha --exit -R nyan -w --recursive tests/ --require tests/bootstrap",
 		"coverage": "nyc npm test",
 		"lint": "eslint lib/ tests/",
-		"build-types": "tsc lib/index.js --declaration --allowJs --emitDeclarationOnly --outDir types"
+		"build-types": "tsc lib/index.js --declaration --allowJs --emitDeclarationOnly --outDir types",
+		"prepare": "husky install"
 	},
 	"repository": {
 		"type": "git",
@@ -23,7 +24,7 @@
 		"eslint": "^7.32.0",
 		"eslint-config-airbnb-base": "^13.2.0",
 		"eslint-plugin-import": "^2.26.0",
-		"husky": "^4.3.8",
+		"husky": "^8.0.1",
 		"mocha": "^7.2.0",
 		"nyc": "^15.1.0",
 		"sinon": "^9.2.4",

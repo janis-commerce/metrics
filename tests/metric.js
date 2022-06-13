@@ -6,7 +6,7 @@ const Settings = require('@janiscommerce/settings');
 
 const { STS, Firehose } = require('../lib/aws-wrappers');
 
-const Metric = require('../lib');
+const Metric = require('../lib/metric');
 
 describe('Metric', () => {
 
