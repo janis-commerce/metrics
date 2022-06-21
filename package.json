@@ -1,0 +1,46 @@
+{
+	"name": "@janiscommerce/metrics",
+	"version": "1.0.0",
+	"description": "A package for creating metrics in Firehose",
+	"main": "lib/metric.js",
+	"scripts": {
+		"test": "export TEST_ENV=true; mocha --exit -R nyan --recursive tests/ --require tests/bootstrap",
+		"coverage-ci": "nyc --reporter=lcov --reporter=text-summary mocha --exit --recursive tests/",
+		"watch-test": "export TEST_ENV=true; mocha --exit -R nyan -w --recursive tests/ --require tests/bootstrap",
+		"coverage": "nyc npm test",
+		"lint": "eslint lib/ tests/",
+		"build-types": "tsc lib/index.js --declaration --allowJs --emitDeclarationOnly --outDir types",
+		"prepare": "husky install"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/janis-commerce/metrics.git"
+	},
+	"author": "Janis",
+	"license": "ISC",
+	"homepage": "https://github.com/janis-commerce/metrics.git#readme",
+	"devDependencies": {
+		"@types/node": "^15.14.9",
+		"eslint": "^7.32.0",
+		"eslint-config-airbnb-base": "^13.2.0",
+		"eslint-plugin-import": "^2.26.0",
+		"husky": "^8.0.1",
+		"mocha": "^7.2.0",
+		"nyc": "^15.1.0",
+		"sinon": "^9.2.4",
+		"typescript": "^4.7.3"
+	},
+	"files": [
+		"lib/",
+		"types/"
+	],
+	"types": "types/index.d.ts",
+	"directories": {
+		"test": "tests"
+	},
+	"dependencies": {
+		"@janiscommerce/settings": "^1.0.1",
+		"@janiscommerce/superstruct": "^1.2.0",
+		"aws-sdk": "^2.1148.0"
+	}
+}
