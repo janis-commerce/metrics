@@ -1,6 +1,6 @@
 {
 	"name": "@janiscommerce/metrics",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "A package for creating metrics in Firehose",
 	"main": "lib/metric.js",
 	"scripts": {
