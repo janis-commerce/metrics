@@ -8,13 +8,12 @@ A package for creating metrics in Firehose
 
 ## Installation
 ```sh
-npm install @janiscommerce/metric
+npm install @janiscommerce/metrics
 ```
 
 ## Configuration
 ### ENV variables
 **`JANIS_SERVICE_NAME`** (required): The Role Session Name to assume role in order to put records in Firehose.
-**`JANIS_ENV`** (required): The stage name that will used as prefix for trace firehose delivery stream.
 **`METRIC_ROLE_ARN`** (required): The ARN to assume role in order to put records in Firehose.
 
 ## API
