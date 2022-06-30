@@ -32,7 +32,6 @@ describe('Metric', () => {
 	};
 
 	const clearCaches = () => {
-		delete Metric._deliveryStreamName; // eslint-disable-line no-underscore-dangle
 		delete Metric._credentialsExpiration; // eslint-disable-line no-underscore-dangle
 		delete Metric._firehose; // eslint-disable-line no-underscore-dangle
 	};
@@ -65,7 +64,7 @@ describe('Metric', () => {
 			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
 
 			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(0), {
-				DeliveryStreamName: 'kpi-metrics-per-client-beta',
+				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
@@ -73,7 +72,7 @@ describe('Metric', () => {
 				]
 			});
 			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(1), {
-				DeliveryStreamName: 'kpi-metrics-per-client-beta',
+				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, clientCode: 'other-client', dateCreated: new Date() }))
@@ -177,7 +176,7 @@ describe('Metric', () => {
 
 			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
 			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
-				DeliveryStreamName: 'kpi-metrics-per-client-beta',
+				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
@@ -193,9 +192,6 @@ describe('Metric', () => {
 		});
 
 		it('Should retry when Firehose fails and emit the create-error event when max retries reached', async () => {
-
-			sinon.stub(process.env, 'JANIS_ENV')
-				.value('qa');
 
 			sinon.stub(STS.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
@@ -215,7 +211,7 @@ describe('Metric', () => {
 
 			sinon.assert.calledThrice(Firehose.prototype.putRecordBatch);
 			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
-				DeliveryStreamName: 'kpi-metrics-per-client-qa',
+				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
 						Data: Buffer.from(JSON.stringify({ ...expectedMetric, dateCreated: new Date() }))
@@ -228,20 +224,6 @@ describe('Metric', () => {
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
 			});
-		});
-
-		it('Should not call Firehose putRecordBatch when ENV stage variable not exists', async () => {
-
-			sinon.stub(process.env, 'JANIS_ENV').value('');
-
-			sinon.stub(STS.prototype, 'assumeRole')
-				.resolves(fakeRole);
-
-			sinon.spy(Firehose.prototype, 'putRecordBatch');
-
-			await Metric.add('some-client', fakeMetricName, fakeMetricData);
-
-			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
 		});
 
 		it('Should not call Firehose putRecordBatch when assume role rejects', async () => {
