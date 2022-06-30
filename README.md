@@ -22,8 +22,8 @@ Parameters: `clientCode [String]`, `metricName [String]`, `metricData [Object] o
 Puts the recieved metric or metrics into the janis-trace-firehose
 
 ### Metric structure
-The `metric [Object]` parameter have the following structure:
-- **`metric [Object|Array]`**: This property is a JSON that includes all the technical data about your metric.
+The `metricData [Object]` parameter have the following structure:
+- **`metricData [Object|Array]`**: This property is a JSON that includes all the technical data about your metric.
 
 ### Metric example
 ```js
