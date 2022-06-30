@@ -2,7 +2,7 @@
 
 ![Build Status](https://github.com/janis-commerce/metrics/workflows/Build%20Status/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/janis-commerce/metrics/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/metrics?branch=master)
-[![npm version](https://badge.fury.io/js/%40janiscommerce%2Fmetric.svg)](https://www.npmjs.com/package/@janiscommerce/metrics)
+[![npm version](https://badge.fury.io/js/%40janiscommerce%2Fmetrics.svg)](https://www.npmjs.com/package/@janiscommerce/metrics)
 
 A package for creating metrics in Firehose
 
