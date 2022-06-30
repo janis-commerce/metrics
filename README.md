@@ -1,8 +1,8 @@
-# metric
+# Metrics
 
-![Build Status](https://github.com/janis-commerce/metric/workflows/Build%20Status/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/janis-commerce/metric/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/metric?branch=master)
-[![npm version](https://badge.fury.io/js/%40janiscommerce%2Fmetric.svg)](https://www.npmjs.com/package/@janiscommerce/metric)
+![Build Status](https://github.com/janis-commerce/metrics/workflows/Build%20Status/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/janis-commerce/metrics/badge.svg?branch=master)](https://coveralls.io/github/janis-commerce/metrics?branch=master)
+[![npm version](https://badge.fury.io/js/%40janiscommerce%2Fmetric.svg)](https://www.npmjs.com/package/@janiscommerce/metrics)
 
 A package for creating metrics in Firehose
 
@@ -55,7 +55,7 @@ The codes are the following:
 
 ## Usage
 ```js
-const Metric = require('@janiscommerce/metric');
+const Metric = require('@janiscommerce/metrics');
 
 // Single metric send
 await Metric.add('some-client', 'order-fulfillment-status', {
@@ -92,7 +92,7 @@ Returns an array with the hooks needed for Metric's serverless configuration acc
 
 const { helper } = require('sls-helper'); // eslint-disable-line
 const functions = require('./serverless/functions.json');
-const Metric = require('@janiscommerce/metric');
+const Metric = require('@janiscommerce/metrics');
 
 module.exports = helper({
 	hooks: [
