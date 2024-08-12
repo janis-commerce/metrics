@@ -10,7 +10,7 @@
 		"coverage": "nyc npm test",
 		"lint": "eslint lib/ tests/",
 		"build-types": "tsc lib/metric.js --declaration --allowJs --emitDeclarationOnly --outDir types",
-		"prepare": "husky install"
+		"prepare": "husky"
 	},
 	"repository": {
 		"type": "git",
@@ -20,15 +20,16 @@
 	"license": "ISC",
 	"homepage": "https://github.com/janis-commerce/metrics.git#readme",
 	"devDependencies": {
-		"@types/node": "^15.14.9",
-		"eslint": "^7.32.0",
-		"eslint-config-airbnb-base": "^13.2.0",
+		"@types/node": "^22.2.0",
+		"aws-sdk-client-mock": "^4.0.1",
+		"eslint": "^8.57.0",
+		"eslint-config-airbnb-base": "^15.0.0",
 		"eslint-plugin-import": "^2.26.0",
-		"husky": "^8.0.1",
-		"mocha": "^7.2.0",
-		"nyc": "^15.1.0",
-		"sinon": "^9.2.4",
-		"typescript": "^4.7.3"
+		"husky": "^9.1.4",
+		"mocha": "^10.7.3",
+		"nyc": "^17.0.0",
+		"sinon": "^18.0.0",
+		"typescript": "^5.5.4"
 	},
 	"files": [
 		"lib/",
@@ -39,8 +40,9 @@
 		"test": "tests"
 	},
 	"dependencies": {
+		"@aws-sdk/client-firehose": "^3.624.0",
+		"@aws-sdk/client-sts": "^3.624.0",
 		"@janiscommerce/settings": "^1.0.1",
-		"@janiscommerce/superstruct": "^1.2.0",
-		"aws-sdk": "^2.1148.0"
+		"@janiscommerce/superstruct": "^1.2.0"
 	}
 }

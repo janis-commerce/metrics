@@ -4,7 +4,8 @@ const assert = require('assert');
 const sinon = require('sinon');
 const Settings = require('@janiscommerce/settings');
 
-const { STS, Firehose } = require('../lib/aws-wrappers');
+const FirehoseWrapper = require('../lib/aws-wrappers/firehose');
+const STSWrapper = require('../lib/aws-wrappers/sts');
 
 const Metric = require('../lib/metric');
 
@@ -51,19 +52,19 @@ describe('Metric', () => {
 
 		it('Should send metrics to Firehose and cache the assumed role credentials', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch')
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch')
 				.resolves();
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
 			await Metric.add('other-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
+			sinon.assert.calledTwice(FirehoseWrapper.prototype.putRecordBatch);
 
-			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(0), {
+			sinon.assert.calledWithExactly(FirehoseWrapper.prototype.putRecordBatch.getCall(0), {
 				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
@@ -71,7 +72,7 @@ describe('Metric', () => {
 					}
 				]
 			});
-			sinon.assert.calledWithExactly(Firehose.prototype.putRecordBatch.getCall(1), {
+			sinon.assert.calledWithExactly(FirehoseWrapper.prototype.putRecordBatch.getCall(1), {
 				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
@@ -80,7 +81,7 @@ describe('Metric', () => {
 				]
 			});
 
-			sinon.assert.calledOnceWithExactly(STS.prototype.assumeRole, {
+			sinon.assert.calledOnceWithExactly(STSWrapper.prototype.assumeRole, {
 				RoleArn: 'some-role-arn',
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
@@ -89,37 +90,37 @@ describe('Metric', () => {
 
 		it('Should split the received metrics into batches of 500 metrics', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch')
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch')
 				.resolves();
 
 			await Metric.add('some-client', fakeMetricName, Array(1250).fill(fakeMetricData));
 
-			sinon.assert.calledThrice(Firehose.prototype.putRecordBatch);
-			sinon.assert.calledOnce(STS.prototype.assumeRole);
+			sinon.assert.calledThrice(FirehoseWrapper.prototype.putRecordBatch);
+			sinon.assert.calledOnce(STSWrapper.prototype.assumeRole);
 		});
 
 		it('Should not send the metric to Firehose when the env is local', async () => {
 
 			sinon.stub(process.env, 'JANIS_ENV').value('local');
 
-			sinon.spy(STS.prototype, 'assumeRole');
-			sinon.spy(Firehose.prototype, 'putRecordBatch');
+			sinon.spy(STSWrapper.prototype, 'assumeRole');
+			sinon.spy(FirehoseWrapper.prototype, 'putRecordBatch');
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.notCalled(STS.prototype.assumeRole);
-			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
+			sinon.assert.notCalled(STSWrapper.prototype.assumeRole);
+			sinon.assert.notCalled(FirehoseWrapper.prototype.putRecordBatch);
 		});
 
 		it('Should get new role credentials when the previous ones expires', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch')
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch')
 				.resolves();
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
@@ -128,15 +129,15 @@ describe('Metric', () => {
 
 			await Metric.add('other-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
+			sinon.assert.calledTwice(FirehoseWrapper.prototype.putRecordBatch);
 
-			sinon.assert.calledTwice(STS.prototype.assumeRole);
-			sinon.assert.calledWithExactly(STS.prototype.assumeRole.getCall(0), {
+			sinon.assert.calledTwice(STSWrapper.prototype.assumeRole);
+			sinon.assert.calledWithExactly(STSWrapper.prototype.assumeRole.getCall(0), {
 				RoleArn: 'some-role-arn',
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
 			});
-			sinon.assert.calledWithExactly(STS.prototype.assumeRole.getCall(1), {
+			sinon.assert.calledWithExactly(STSWrapper.prototype.assumeRole.getCall(1), {
 				RoleArn: 'some-role-arn',
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
@@ -147,35 +148,35 @@ describe('Metric', () => {
 
 			sinon.stub(process.env, 'METRIC_ROLE_ARN').value('');
 
-			sinon.spy(STS.prototype, 'assumeRole');
+			sinon.spy(STSWrapper.prototype, 'assumeRole');
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch')
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch')
 				.resolves();
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.calledOnce(Firehose.prototype.putRecordBatch);
+			sinon.assert.calledOnce(FirehoseWrapper.prototype.putRecordBatch);
 
-			sinon.assert.notCalled(STS.prototype.assumeRole);
+			sinon.assert.notCalled(STSWrapper.prototype.assumeRole);
 		});
 
 		it('Should retry when Firehose fails', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch');
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch');
 
-			Firehose.prototype.putRecordBatch.onFirstCall()
+			FirehoseWrapper.prototype.putRecordBatch.onFirstCall()
 				.rejects();
 
-			Firehose.prototype.putRecordBatch.onSecondCall()
+			FirehoseWrapper.prototype.putRecordBatch.onSecondCall()
 				.resolves();
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.calledTwice(Firehose.prototype.putRecordBatch);
-			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
+			sinon.assert.calledTwice(FirehoseWrapper.prototype.putRecordBatch);
+			sinon.assert.alwaysCalledWithExactly(FirehoseWrapper.prototype.putRecordBatch, {
 				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
@@ -184,7 +185,7 @@ describe('Metric', () => {
 				]
 			});
 
-			sinon.assert.calledOnceWithExactly(STS.prototype.assumeRole, {
+			sinon.assert.calledOnceWithExactly(STSWrapper.prototype.assumeRole, {
 				RoleArn: 'some-role-arn',
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
@@ -193,10 +194,10 @@ describe('Metric', () => {
 
 		it('Should retry when Firehose fails and emit the create-error event when max retries reached', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves({ ...fakeRole, Expiration: new Date().toISOString() });
 
-			sinon.stub(Firehose.prototype, 'putRecordBatch')
+			sinon.stub(FirehoseWrapper.prototype, 'putRecordBatch')
 				.rejects();
 
 			let errorEmitted = false;
@@ -209,8 +210,8 @@ describe('Metric', () => {
 
 			assert.deepStrictEqual(errorEmitted, true);
 
-			sinon.assert.calledThrice(Firehose.prototype.putRecordBatch);
-			sinon.assert.alwaysCalledWithExactly(Firehose.prototype.putRecordBatch, {
+			sinon.assert.calledThrice(FirehoseWrapper.prototype.putRecordBatch);
+			sinon.assert.alwaysCalledWithExactly(FirehoseWrapper.prototype.putRecordBatch, {
 				DeliveryStreamName: 'kpi-metrics-per-client',
 				Records: [
 					{
@@ -219,7 +220,7 @@ describe('Metric', () => {
 				]
 			});
 
-			sinon.assert.calledOnceWithExactly(STS.prototype.assumeRole, {
+			sinon.assert.calledOnceWithExactly(STSWrapper.prototype.assumeRole, {
 				RoleArn: 'some-role-arn',
 				RoleSessionName: 'default-service',
 				DurationSeconds: 1800
@@ -228,26 +229,26 @@ describe('Metric', () => {
 
 		it('Should not call Firehose putRecordBatch when assume role rejects', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.rejects();
 
-			sinon.spy(Firehose.prototype, 'putRecordBatch');
+			sinon.spy(FirehoseWrapper.prototype, 'putRecordBatch');
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
+			sinon.assert.notCalled(FirehoseWrapper.prototype.putRecordBatch);
 		});
 
 		it('Should not call Firehose putRecordBatch when assume role returns an invalid result', async () => {
 
-			sinon.stub(STS.prototype, 'assumeRole')
+			sinon.stub(STSWrapper.prototype, 'assumeRole')
 				.resolves(null);
 
-			sinon.spy(Firehose.prototype, 'putRecordBatch');
+			sinon.spy(FirehoseWrapper.prototype, 'putRecordBatch');
 
 			await Metric.add('some-client', fakeMetricName, fakeMetricData);
 
-			sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
+			sinon.assert.notCalled(FirehoseWrapper.prototype.putRecordBatch);
 		});
 
 		context('When the received metric is invalid', () => {
@@ -262,13 +263,13 @@ describe('Metric', () => {
 
 				it('Should throw and not try to send the metric to Firehose', async () => {
 
-					sinon.spy(STS.prototype, 'assumeRole');
-					sinon.spy(Firehose.prototype, 'putRecordBatch');
+					sinon.spy(STSWrapper.prototype, 'assumeRole');
+					sinon.spy(FirehoseWrapper.prototype, 'putRecordBatch');
 
 					await Metric.add(clientCode, metricName, metricData);
 
-					sinon.assert.notCalled(STS.prototype.assumeRole);
-					sinon.assert.notCalled(Firehose.prototype.putRecordBatch);
+					sinon.assert.notCalled(STSWrapper.prototype.assumeRole);
+					sinon.assert.notCalled(FirehoseWrapper.prototype.putRecordBatch);
 				});
 			});
 		});
